@@ -1,114 +1,253 @@
 # Claude Agent AI Provider
 
-A custom AI SDK provider that bridges the [AI SDK](https://sdk.vercel.ai/) to the [Claude Agent SDK](https://docs.claude.com/en/docs/agent-sdk/typescript), enabling agent capabilities with Claude models through a standardized interface.
+[![npm version](https://badge.fury.io/js/claude-agent-ai-provider.svg)](https://www.npmjs.com/package/claude-agent-ai-provider)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> Use Claude with the AI SDK — unlock agent capabilities, tool calling, and streaming with a simple, standardized interface.
+
+A seamless bridge between [Vercel's AI SDK](https://sdk.vercel.ai/) and [Anthropic's Claude Agent SDK](https://docs.claude.com/en/docs/agent-sdk/typescript). Write AI applications using familiar AI SDK patterns while leveraging Claude's powerful agent capabilities under the hood.
+
+## Why Use This?
+
+- **🎯 Familiar API**: Use AI SDK's `generateText()`, `generateObject()`, and `streamText()` with Claude models
+- **🤖 Agent Capabilities**: Full Claude Agent SDK integration with multi-step reasoning and tool calling
+- **🔄 Streaming Support**: Real-time text streaming with event monitoring
+- **📊 Structured Data**: Extract structured data with type-safe schemas using Zod
+- **🛠️ Tool Calling**: Let Claude use tools and APIs to accomplish complex tasks
+- **💎 TypeScript First**: Fully typed with comprehensive IntelliSense support
+- **⚡ Production Ready**: Built with Bun, thoroughly tested, and optimized for performance
 
 ## Features
 
-✅ **Full AI SDK v5 LanguageModelV2 compatibility**
-✅ **Claude Agent SDK integration** with multi-step agent capabilities
-✅ **Streaming and non-streaming generation**
-✅ **Tool calling support** (translates between AI SDK and Agent SDK formats)
-✅ **Proper usage tracking** including tokens and costs
-✅ **Type-safe** with full TypeScript support
-✅ **Built with Bun** for optimal performance
+✅ Full AI SDK v5 `LanguageModelV2` compatibility
+✅ Claude Agent SDK integration with multi-step agent capabilities
+✅ Streaming and non-streaming text generation
+✅ Tool calling with automatic format translation
+✅ Structured data extraction with `generateObject()`
+✅ Usage tracking (tokens, costs, caching)
+✅ Type-safe with full TypeScript support
 
 ## Installation
 
 ```bash
-bun add @anthropic-ai/claude-agent-sdk ai
+npm install claude-agent-ai-provider ai
+# or
+bun add claude-agent-ai-provider ai
 ```
+
+> **Note**: Make sure to set your `ANTHROPIC_API_KEY` environment variable.
+
+## Use Cases
+
+Perfect for building:
+
+- 🤖 **AI Chatbots**: Conversational interfaces with streaming responses
+- 📊 **Data Extraction**: Parse resumes, invoices, documents into structured data
+- 🔧 **AI Agents**: Multi-step workflows with tool calling capabilities
+- ✍️ **Content Generation**: Blogs, emails, code, creative writing
+- 🎯 **Classification**: Sentiment analysis, intent detection, content moderation
+- 🔍 **Analysis**: Code review, document summarization, data insights
 
 ## Quick Start
 
 ```typescript
+import { generateText } from 'ai';
 import { claude } from 'claude-agent-ai-provider';
 
-// Create a model instance
-const model = claude('sonnet');
-
-// Generate text
-const result = await model.doGenerate({
-  prompt: [
-    {
-      role: 'user',
-      content: [{ type: 'text', text: 'Hello! Tell me about AI.' }],
-    },
-  ],
+const { text } = await generateText({
+  model: claude('sonnet'),
+  prompt: 'Explain TypeScript in one sentence.',
 });
 
-console.log(result.content);
+console.log(text);
 ```
 
-## Usage
+## Usage Examples
 
-### Basic Generation
+### 📝 Text Generation with `generateText()`
+
+Generate text responses with full conversation support:
 
 ```typescript
+import { generateText } from 'ai';
 import { claude } from 'claude-agent-ai-provider';
 
-const model = claude('sonnet');
+// Simple text generation
+const { text } = await generateText({
+  model: claude('sonnet'),
+  prompt: 'Write a haiku about coding.',
+});
 
-const result = await model.doGenerate({
-  prompt: [
-    { role: 'user', content: [{ type: 'text', text: 'Your prompt here' }] },
+// With system prompts and conversation history
+const { text: response } = await generateText({
+  model: claude('sonnet'),
+  system: 'You are a helpful coding assistant. Be concise.',
+  messages: [
+    { role: 'user', content: 'What is TypeScript?' },
+    { role: 'assistant', content: 'TypeScript is a typed superset of JavaScript...' },
+    { role: 'user', content: 'What are its main benefits?' },
   ],
 });
 ```
 
-### Streaming
+### 🔧 Tool Calling with Agents
+
+Enable Claude to use tools for complex tasks:
 
 ```typescript
-const result = await model.doStream({
-  prompt: [
-    { role: 'user', content: [{ type: 'text', text: 'Count from 1 to 5' }] },
-  ],
+import { generateText, tool } from 'ai';
+import { claude } from 'claude-agent-ai-provider';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: claude('sonnet'),
+  tools: {
+    getWeather: tool({
+      description: 'Get the current weather for a location',
+      parameters: z.object({
+        location: z.string().describe('City name'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72,
+        condition: 'Sunny',
+      }),
+    }),
+  },
+  prompt: 'What is the weather in San Francisco?',
 });
 
-const reader = result.stream.getReader();
-while (true) {
-  const { value, done } = await reader.read();
-  if (done) break;
+console.log(result.text);
+// Claude will call the getWeather tool and incorporate the result
+```
 
-  if (value.type === 'text-delta') {
-    process.stdout.write(value.delta);
+### 📊 Structured Data with `generateObject()`
+
+Extract structured data from unstructured text:
+
+```typescript
+import { generateObject } from 'ai';
+import { claude } from 'claude-agent-ai-provider';
+import { z } from 'zod';
+
+// Extract user information from text
+const { object } = await generateObject({
+  model: claude('sonnet'),
+  schema: z.object({
+    name: z.string(),
+    email: z.string().email(),
+    skills: z.array(z.string()),
+    yearsExperience: z.number(),
+  }),
+  prompt: `Extract information: "John Doe is a senior developer with 8 years
+           of experience in React, TypeScript, and Node.js.
+           Email: john@example.com"`,
+});
+
+console.log(object);
+// {
+//   name: "John Doe",
+//   email: "john@example.com",
+//   skills: ["React", "TypeScript", "Node.js"],
+//   yearsExperience: 8
+// }
+```
+
+### 🎯 Classification with Enums
+
+Classify content into predefined categories:
+
+```typescript
+import { generateObject } from 'ai';
+import { claude } from 'claude-agent-ai-provider';
+
+const { object: sentiment } = await generateObject({
+  model: claude('haiku'), // Use faster Haiku for simple tasks
+  output: 'enum',
+  enum: ['positive', 'negative', 'neutral'],
+  prompt: 'Analyze sentiment: "This product exceeded my expectations!"',
+});
+
+console.log(sentiment); // 'positive'
+```
+
+### 🌊 Real-Time Streaming with `streamText()`
+
+Stream responses for interactive experiences:
+
+```typescript
+import { streamText } from 'ai';
+import { claude } from 'claude-agent-ai-provider';
+
+const { textStream } = streamText({
+  model: claude('sonnet'),
+  prompt: 'Write a short story about a robot learning to paint.',
+});
+
+// Stream text as it's generated
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### 🔄 Streaming with Full Event Access
+
+Monitor all streaming events including tool calls:
+
+```typescript
+import { streamText, tool } from 'ai';
+import { claude } from 'claude-agent-ai-provider';
+import { z } from 'zod';
+
+const { fullStream } = streamText({
+  model: claude('sonnet'),
+  tools: {
+    calculateSum: tool({
+      description: 'Calculate the sum of numbers',
+      parameters: z.object({
+        numbers: z.array(z.number()),
+      }),
+      execute: async ({ numbers }) => ({
+        sum: numbers.reduce((a, b) => a + b, 0),
+      }),
+    }),
+  },
+  prompt: 'What is 25 + 17 + 33?',
+});
+
+for await (const part of fullStream) {
+  switch (part.type) {
+    case 'text-delta':
+      process.stdout.write(part.textDelta);
+      break;
+    case 'tool-call':
+      console.log(`\nCalling tool: ${part.toolName}`);
+      break;
+    case 'tool-result':
+      console.log(`Tool result:`, part.result);
+      break;
   }
 }
 ```
 
-### With Custom Settings
+### ⚙️ Advanced Configuration
+
+Customize model behavior and settings:
 
 ```typescript
-import { createClaudeProvider } from 'claude-agent-ai-provider';
+import { generateText } from 'ai';
+import { claude } from 'claude-agent-ai-provider';
 
-// The provider automatically picks up ANTHROPIC_API_KEY from environment
-const provider = createClaudeProvider({
-  timeout: 120000, // Optional: custom timeout
-});
-
-const model = provider.languageModel('opus', {
-  maxTokens: 4096,
-  temperature: 0.7,
-  agent: {
-    enabled: true,
-    maxSteps: 10,
-  },
-});
-```
-
-### With System Prompts
-
-```typescript
-const result = await model.doGenerate({
-  prompt: [
-    {
-      role: 'system',
-      content: 'You are a helpful coding assistant.',
-    },
-    {
-      role: 'user',
-      content: [{ type: 'text', text: 'Explain async/await' }],
-    },
-  ],
+const result = await generateText({
+  model: claude('opus', {
+    // Provider config (optional)
+    timeout: 120000,
+  }, {
+    // Model settings (optional)
+    maxTokens: 4096,
+    temperature: 0.7,
+  }),
+  prompt: 'Write creative content...',
 });
 ```
 
@@ -158,70 +297,39 @@ Creates a provider instance for creating multiple models.
 
 **Returns:** `ClaudeProvider`
 
-## Examples
+## More Examples
 
-Comprehensive examples demonstrating real-world usage patterns:
+This package includes **18+ comprehensive examples** covering real-world use cases. Browse the [`examples/`](./examples) directory or check the [examples documentation](./examples/README.md).
 
-### E2E Examples with AI SDK
+### 📝 Text Generation Examples
+- **Basic**: Simple generation, system prompts, conversations, settings
+- **Tools**: Single tool, multiple tools, multi-step workflows, tool choice
+- **Advanced**: Callbacks, error handling, abort signals, complex workflows
+- **Real-world**: Content summarization, data analysis, code generation, decision making
 
-**generateText() - Text Generation**
+### 📊 Structured Data Examples
+- **Basic**: Objects, arrays, enums, nested structures
+- **Extraction**: Resume parsing, article metadata, product info, email parsing
+- **Synthetic**: Test data generation, mock APIs, database records
+- **Validation**: Content moderation, sentiment analysis, intent classification
+
+### 🌊 Streaming Examples
+- **Basic**: textStream, fullStream, callbacks, multiple consumption
+- **Tools**: Real-time tool execution, progress monitoring
+- **Real-world**: Chatbot, live code generation, analysis, abort control
+
+### 🔧 Advanced Tool Calling
+- **Multi-step**: `stopWhen` conditions, `prepareStep` callbacks
+- **Lifecycle**: Tool input hooks (`onInputStart`, `onInputDelta`, `onInputAvailable`)
+- **Progress**: Preliminary results with generator functions
+- **Context**: Active tools, context passing, execution options
+
+Run any example:
 ```bash
-# Basic text generation (prompts, system messages, conversations)
 bun examples/e2e-generate-text-basic.ts
-
-# Tool calling (single, multiple, multi-step workflows)
-bun examples/e2e-generate-text-tools.ts
-
-# Advanced features (callbacks, error handling, abort signals)
-bun examples/e2e-generate-text-advanced.ts
-
-# Real-world use cases (summarization, data analysis, code generation)
-bun examples/e2e-generate-text-real-world.ts
-```
-
-**generateObject() - Structured Data Generation**
-```bash
-# Basic object generation (objects, arrays, enums, no-schema)
-bun examples/e2e-generate-object-basic.ts
-
-# Information extraction (resume parsing, article metadata, email parsing)
 bun examples/e2e-generate-object-extraction.ts
-
-# Synthetic data (test data, mock APIs, database records)
-bun examples/e2e-generate-object-synthetic.ts
-
-# Classification & validation (content moderation, sentiment, data validation)
-bun examples/e2e-generate-object-validation.ts
-```
-
-**streamText() - Real-Time Text Streaming**
-```bash
-# Basic streaming (textStream, fullStream, callbacks, conversations)
-bun examples/e2e-stream-text-basic.ts
-
-# Streaming with tools (real-time tool execution, progress monitoring)
-bun examples/e2e-stream-text-tools.ts
-
-# Real-world streaming (chatbot, live code gen, analysis, abort control)
 bun examples/e2e-stream-text-real-world.ts
 ```
-
-**Advanced Tool Calling**
-```bash
-# Advanced features (stopWhen, prepareStep, hooks, generators, active tools, context)
-bun examples/e2e-advanced-tool-calling.ts
-```
-
-### Basic Provider Examples
-
-```bash
-# Direct provider usage
-bun examples/basic-usage.ts
-bun examples/simple-generation.ts
-bun examples/provider-demo.ts
-```
-
-See the [examples/README.md](examples/README.md) for detailed documentation.
 
 ## Development
 
