@@ -16,6 +16,22 @@ import type {
 } from '@anthropic-ai/claude-agent-sdk';
 
 /**
+ * Strips markdown code block formatting from JSON responses
+ * Claude sometimes wraps JSON in ```json ... ``` despite instructions not to
+ */
+export function stripMarkdownCodeBlocks(text: string): string {
+  // Remove ```json ... ``` or ``` ... ``` wrappers
+  const codeBlockPattern = /^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/;
+  const match = text.match(codeBlockPattern);
+
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+
+  return text.trim();
+}
+
+/**
  * Converts AI SDK prompt format to a plain text string for Agent SDK
  * For the initial implementation, we'll convert to a simple text prompt
  */

@@ -25,6 +25,7 @@ import {
   convertStopReason,
   convertResultToUsage,
   collectAssistantMessages,
+  stripMarkdownCodeBlocks,
 } from './converters';
 
 /**
@@ -68,7 +69,7 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
    * Uses Claude Agent SDK defaults wherever possible
    */
   private buildAgentSDKOptions(options: LanguageModelV2CallOptions): AgentSDKOptions {
-    const systemPrompt = extractSystemPrompt(options.prompt);
+    let systemPrompt = extractSystemPrompt(options.prompt);
 
     // Start with minimal config - let Agent SDK use its defaults
     const agentOptions: AgentSDKOptions = {
@@ -78,6 +79,31 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
       // - Uses default cwd (process.cwd())
       // - Loads settings from ~/.claude/settings.json by default
     };
+
+    // Handle structured output (generateObject) by forcing JSON-only mode
+    if (options.responseFormat?.type === 'json') {
+      const jsonInstructions = [
+        'You must respond with ONLY valid JSON. Do not include any explanatory text, markdown formatting, or comments.',
+        'Output a single JSON object that matches the required schema.',
+        'Do not wrap the JSON in markdown code blocks or add any text before or after the JSON.',
+      ];
+
+      if (options.responseFormat.schema) {
+        jsonInstructions.push(
+          `The JSON must conform to this schema: ${JSON.stringify(options.responseFormat.schema)}`
+        );
+      }
+
+      if (options.responseFormat.description) {
+        jsonInstructions.push(`Description: ${options.responseFormat.description}`);
+      }
+
+      // Prepend JSON instructions to system prompt
+      const jsonSystemPrompt = jsonInstructions.join('\n');
+      systemPrompt = systemPrompt
+        ? `${jsonSystemPrompt}\n\n${systemPrompt}`
+        : jsonSystemPrompt;
+    }
 
     // Add system prompt if present
     if (systemPrompt) {
@@ -133,7 +159,20 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
       });
 
       // Collect all messages from the async generator
-      const { content, finishReason, usage, result } = await collectAssistantMessages(queryResult);
+      let { content, finishReason, usage, result } = await collectAssistantMessages(queryResult);
+
+      // Post-process JSON responses to strip markdown code blocks
+      if (options.responseFormat?.type === 'json') {
+        content = content.map((item) => {
+          if (item.type === 'text' && typeof item.text === 'string') {
+            return {
+              ...item,
+              text: stripMarkdownCodeBlocks(item.text),
+            };
+          }
+          return item;
+        });
+      }
 
       return {
         content,
