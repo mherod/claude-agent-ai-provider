@@ -20,8 +20,9 @@ import type {
  * Claude sometimes wraps JSON in ```json ... ``` despite instructions not to
  */
 export function stripMarkdownCodeBlocks(text: string): string {
-  // Remove ```json ... ``` or ``` ... ``` wrappers
-  const codeBlockPattern = /^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/;
+  // Remove any text before code block, then extract JSON from ```json ... ``` or ``` ... ``` wrappers
+  // Pattern matches: optional text, then code block with content, then optional text after
+  const codeBlockPattern = /```(?:json)?\s*\n([\s\S]*?)\n```/;
   const match = text.match(codeBlockPattern);
 
   if (match && match[1]) {
