@@ -1,0 +1,71 @@
+{
+  "name": "claude-agent-ai-provider",
+  "version": "0.1.0",
+  "description": "AI SDK provider that bridges Vercel AI SDK to Claude Agent SDK, enabling agent capabilities with Claude models",
+  "author": "Matthew Herod",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CLAUDE.md"
+  ],
+  "scripts": {
+    "build": "bun run build:js && bun run build:types",
+    "build:js": "bun build ./index.ts --outdir ./dist --target node --format esm --minify --sourcemap=external",
+    "build:types": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "typecheck:src": "tsc --project tsconfig.build.json --noEmit",
+    "test": "bun test",
+    "prepublishOnly": "bun run typecheck:src && bun run build && bun test",
+    "clean": "rm -rf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mherod/claude-agent-ai-provider.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mherod/claude-agent-ai-provider/issues"
+  },
+  "homepage": "https://github.com/mherod/claude-agent-ai-provider#readme",
+  "keywords": [
+    "ai",
+    "ai-sdk",
+    "vercel-ai-sdk",
+    "claude",
+    "anthropic",
+    "claude-agent-sdk",
+    "agent",
+    "provider",
+    "llm",
+    "language-model",
+    "typescript"
+  ],
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.37",
+    "@ai-sdk/provider": "^1.0.0",
+    "zod": "^3.22.4"
+  },
+  "peerDependencies": {
+    "ai": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "ai": "^5.0.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,45 @@
+# Source files (we ship compiled dist/)
+src/
+index.ts
+*.ts
+!*.d.ts
+
+# Development files
+examples/
+test/
+*.test.ts
+*.spec.ts
+
+# Build configuration
+tsconfig.json
+tsconfig.build.json
+bun.lock
+
+# Development tools
+.cursor/
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+
+# Documentation (except what we want to include)
+IMPLEMENTATION.md
+*.md
+!README.md
+!CLAUDE.md
+
+# Misc
+*.log
+.DS_Store
+*.tsbuildinfo
+.env
+.env.*
+
+# Playwright MCP
+.playwright-mcp/
