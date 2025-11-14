@@ -169,4 +169,53 @@ All examples include detailed comments and console output showing usage, finish 
 - Tool calling support translates between AI SDK's function-based format and Agent SDK's tool format
 - The provider supports both streaming (via ReadableStream) and non-streaming modes
 - Usage tracking includes input tokens, output tokens, and cache tokens (cache_read_input_tokens)
-- Examples require `ANTHROPIC_API_KEY` environment variable to be set
+- Examples require `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` environment variable
+
+### generateObject() Implementation (Added in v0.1.1)
+
+**JSON Response Handling** (src/language-model.ts:82-105):
+- When `options.responseFormat?.type === 'json'`, the provider injects explicit JSON-only instructions into the system prompt
+- Instructions tell Claude to return ONLY valid JSON without markdown formatting or explanatory text
+- JSON schema is included in instructions when provided via `responseFormat.schema`
+
+**Markdown Stripping** (src/converters.ts:18-32):
+- `stripMarkdownCodeBlocks()` removes `` ```json ``` `` wrappers from responses
+- Handles cases where Claude adds explanatory text before code blocks
+- Applied to all text content in `doGenerate()` when `responseFormat.type === 'json'` (src/language-model.ts:164-175)
+
+**Why This Is Needed**:
+- Claude Agent SDK doesn't have native structured output support like OpenAI's function calling
+- We must use prompt engineering to force JSON-only responses
+- Post-processing ensures clean JSON even when Claude adds markdown despite instructions
+
+## Publishing
+
+```bash
+# Version bump (auto-commits)
+npm version patch  # 0.1.0 -> 0.1.1
+npm version minor  # 0.1.0 -> 0.2.0
+npm version major  # 0.1.0 -> 1.0.0
+
+# Publish to npm (runs prepublishOnly script automatically)
+npm publish
+
+# Push to GitHub
+git push && git push --tags
+
+# Create GitHub release
+gh release create v0.1.1 --title "v0.1.1 - Title" --notes "Release notes..."
+```
+
+The `prepublishOnly` script automatically runs:
+1. `bun run typecheck:src` - Type check source files
+2. `bun run build` - Build JavaScript + TypeScript declarations
+3. `bun test` - Run all tests
+
+## Authentication
+
+The provider supports two authentication methods (both auto-detected from environment):
+
+1. **Anthropic API Key**: Set `ANTHROPIC_API_KEY` for production use
+2. **Claude Code OAuth Token**: Set `CLAUDE_CODE_OAUTH_TOKEN` for development (run `claude setup-token`)
+
+Claude Code quota allows free development/testing without separate API costs.
