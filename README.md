@@ -9,23 +9,19 @@ A seamless bridge between [Vercel's AI SDK](https://sdk.vercel.ai/) and [Anthrop
 
 ## Why Use This?
 
-- **🎯 Familiar API**: Use AI SDK's `generateText()`, `generateObject()`, and `streamText()` with Claude models
-- **🤖 Agent Capabilities**: Full Claude Agent SDK integration with multi-step reasoning and tool calling
-- **🔄 Streaming Support**: Real-time text streaming with event monitoring
-- **📊 Structured Data**: Extract structured data with type-safe schemas using Zod
-- **🛠️ Tool Calling**: Let Claude use tools and APIs to accomplish complex tasks
-- **💎 TypeScript First**: Fully typed with comprehensive IntelliSense support
-- **⚡ Production Ready**: Built with Bun, thoroughly tested, and optimized for performance
+- **AI SDK Compatibility**: Use Claude models with AI SDK's `generateText()`, `generateObject()`, and `streamText()`
+- **Claude Code Quota**: Set `CLAUDE_CODE_OAUTH_TOKEN` to use your existing Claude Code subscription - no separate API key needed
+- **Agent SDK Integration**: Full Claude Agent SDK capabilities including multi-step reasoning and complex workflows
+- **Format Translation**: Automatic conversion between AI SDK and Agent SDK message/tool formats
 
 ## Features
 
-✅ Full AI SDK v5 `LanguageModelV2` compatibility
+✅ AI SDK v5 `LanguageModelV2` implementation
 ✅ Claude Agent SDK integration with multi-step agent capabilities
-✅ Streaming and non-streaming text generation
-✅ Tool calling with automatic format translation
-✅ Structured data extraction with `generateObject()`
+✅ Message and tool format translation between SDKs
+✅ Streaming via ReadableStream
 ✅ Usage tracking (tokens, costs, caching)
-✅ Type-safe with full TypeScript support
+✅ Full TypeScript support
 
 ## Installation
 
@@ -35,18 +31,36 @@ npm install claude-agent-ai-provider ai
 bun add claude-agent-ai-provider ai
 ```
 
-> **Note**: Make sure to set your `ANTHROPIC_API_KEY` environment variable.
+## Authentication
 
-## Use Cases
+You have two options for authentication:
 
-Perfect for building:
+### Option 1: Use Claude Code Quota (Recommended)
 
-- 🤖 **AI Chatbots**: Conversational interfaces with streaming responses
-- 📊 **Data Extraction**: Parse resumes, invoices, documents into structured data
-- 🔧 **AI Agents**: Multi-step workflows with tool calling capabilities
-- ✍️ **Content Generation**: Blogs, emails, code, creative writing
-- 🎯 **Classification**: Sentiment analysis, intent detection, content moderation
-- 🔍 **Analysis**: Code review, document summarization, data insights
+If you have [Claude Code](https://claude.ai/code) installed, you can use your Claude Code quota without needing a separate API key:
+
+```bash
+# Generate your long-lived OAuth token
+claude setup-token
+
+# This sets the CLAUDE_CODE_OAUTH_TOKEN environment variable
+# The provider will automatically use this token
+```
+
+This is perfect for:
+- Development and testing without API costs
+- Using the AI SDK with your existing Claude Code subscription
+- Quick prototyping and experimentation
+
+### Option 2: Use Anthropic API Key
+
+Alternatively, set your Anthropic API key:
+
+```bash
+export ANTHROPIC_API_KEY=your_api_key_here
+```
+
+Get your API key from [Anthropic Console](https://console.anthropic.com/).
 
 ## Quick Start
 
@@ -64,7 +78,7 @@ console.log(text);
 
 ## Usage Examples
 
-### 📝 Text Generation with `generateText()`
+### Text Generation
 
 Generate text responses with full conversation support:
 
@@ -90,9 +104,7 @@ const { text: response } = await generateText({
 });
 ```
 
-### 🔧 Tool Calling with Agents
-
-Enable Claude to use tools for complex tasks:
+### Tool Calling
 
 ```typescript
 import { generateText, tool } from 'ai';
@@ -121,9 +133,7 @@ console.log(result.text);
 // Claude will call the getWeather tool and incorporate the result
 ```
 
-### 📊 Structured Data with `generateObject()`
-
-Extract structured data from unstructured text:
+### Structured Output
 
 ```typescript
 import { generateObject } from 'ai';
@@ -153,9 +163,7 @@ console.log(object);
 // }
 ```
 
-### 🎯 Classification with Enums
-
-Classify content into predefined categories:
+### Enum Output
 
 ```typescript
 import { generateObject } from 'ai';
@@ -171,9 +179,7 @@ const { object: sentiment } = await generateObject({
 console.log(sentiment); // 'positive'
 ```
 
-### 🌊 Real-Time Streaming with `streamText()`
-
-Stream responses for interactive experiences:
+### Streaming
 
 ```typescript
 import { streamText } from 'ai';
@@ -190,9 +196,7 @@ for await (const chunk of textStream) {
 }
 ```
 
-### 🔄 Streaming with Full Event Access
-
-Monitor all streaming events including tool calls:
+### Streaming with Events
 
 ```typescript
 import { streamText, tool } from 'ai';
@@ -230,9 +234,7 @@ for await (const part of fullStream) {
 }
 ```
 
-### ⚙️ Advanced Configuration
-
-Customize model behavior and settings:
+### Configuration
 
 ```typescript
 import { generateText } from 'ai';
@@ -299,32 +301,13 @@ Creates a provider instance for creating multiple models.
 
 ## More Examples
 
-This package includes **18+ comprehensive examples** covering real-world use cases. Browse the [`examples/`](./examples) directory or check the [examples documentation](./examples/README.md).
+See [`examples/`](./examples) directory for 18+ comprehensive examples including:
 
-### 📝 Text Generation Examples
-- **Basic**: Simple generation, system prompts, conversations, settings
-- **Tools**: Single tool, multiple tools, multi-step workflows, tool choice
-- **Advanced**: Callbacks, error handling, abort signals, complex workflows
-- **Real-world**: Content summarization, data analysis, code generation, decision making
+- Text generation with tools and multi-step workflows
+- Structured data extraction and validation
+- Streaming with callbacks and event monitoring
+- Advanced tool calling with lifecycle hooks
 
-### 📊 Structured Data Examples
-- **Basic**: Objects, arrays, enums, nested structures
-- **Extraction**: Resume parsing, article metadata, product info, email parsing
-- **Synthetic**: Test data generation, mock APIs, database records
-- **Validation**: Content moderation, sentiment analysis, intent classification
-
-### 🌊 Streaming Examples
-- **Basic**: textStream, fullStream, callbacks, multiple consumption
-- **Tools**: Real-time tool execution, progress monitoring
-- **Real-world**: Chatbot, live code generation, analysis, abort control
-
-### 🔧 Advanced Tool Calling
-- **Multi-step**: `stopWhen` conditions, `prepareStep` callbacks
-- **Lifecycle**: Tool input hooks (`onInputStart`, `onInputDelta`, `onInputAvailable`)
-- **Progress**: Preliminary results with generator functions
-- **Context**: Active tools, context passing, execution options
-
-Run any example:
 ```bash
 bun examples/e2e-generate-text-basic.ts
 bun examples/e2e-generate-object-extraction.ts
