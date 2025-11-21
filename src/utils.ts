@@ -5,6 +5,7 @@
  * including API key detection from environment variables (ANTHROPIC_API_KEY)
  */
 
+import { execSync } from 'child_process';
 import type { ClaudeProviderConfig } from './types.ts';
 
 // Cache for detected Claude binary path to avoid repeated lookups
@@ -37,11 +38,13 @@ export function mergeHeaders(config?: ClaudeProviderConfig): Record<string, stri
  */
 function getClaudeVersion(path: string): string | null {
   try {
-    const proc = Bun.spawnSync(['sh', '-c', `"${path}" --version 2>&1`]);
-    const output = new TextDecoder().decode(proc.stdout).trim();
+    const output = execSync(`"${path}" --version 2>&1`, {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    }).trim();
     // Extract version number from output like "2.0.49 (Claude Code)"
     const match = output.match(/(\d+\.\d+\.\d+)/);
-    return match ? match[1] : null;
+    return match && match[1] ? match[1] : null;
   } catch {
     return null;
   }
@@ -51,8 +54,29 @@ function getClaudeVersion(path: string): string | null {
  * Checks if a version string is 2.x or higher
  */
 function isModernVersion(version: string): boolean {
-  const major = parseInt(version.split('.')[0], 10);
+  const parts = version.split('.');
+  const major = parseInt(parts[0] || '0', 10);
   return major >= 2;
+}
+
+/**
+ * Cross-platform which implementation using Node.js child_process
+ * @returns The path to the executable, or null if not found
+ */
+function which(command: string): string | null {
+  try {
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+    const output = execSync(`${whichCommand} ${command} 2>/dev/null || true`, {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    }).trim();
+    // Return first line if multiple paths found
+    const firstPath = output.split('\n')[0];
+    return firstPath || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -70,10 +94,10 @@ export function detectClaudeBinaryPath(): string | null {
   try {
     // Common locations for native Claude Code installation
     const commonPaths = [
-      `${process.env.HOME}/.claude/local/claude`,  // Standard install location
+      process.env.HOME ? `${process.env.HOME}/.claude/local/claude` : null,  // Standard install location
       '/usr/local/bin/claude',                      // Homebrew/system install
       '/opt/homebrew/bin/claude',                   // Homebrew on Apple Silicon
-    ];
+    ].filter((path): path is string => path !== null);
 
     // Check common native installation paths first
     for (const path of commonPaths) {
@@ -85,8 +109,8 @@ export function detectClaudeBinaryPath(): string | null {
     }
 
     // Fall back to `which claude` but verify it's a modern version
-    const whichPath = Bun.which('claude');
-    if (whichPath) {
+    const whichPath = which('claude');
+    if (whichPath !== null) {
       const version = getClaudeVersion(whichPath);
       if (version && isModernVersion(version)) {
         cachedClaudePath = whichPath;

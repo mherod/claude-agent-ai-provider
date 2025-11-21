@@ -1,6 +1,6 @@
 {
   "name": "claude-agent-ai-provider",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AI SDK provider that bridges Vercel AI SDK to Claude Agent SDK, enabling agent capabilities with Claude models",
   "author": "Matthew Herod",
   "license": "MIT",
