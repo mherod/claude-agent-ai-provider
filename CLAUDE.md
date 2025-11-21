@@ -90,10 +90,15 @@ The provider translates between two different message formats:
 - `collectAssistantMessages()` - Collects all messages from Agent SDK stream for non-streaming mode
 - Handles text blocks and tool use blocks
 
-**src/types.ts** (src/types.ts:1-129):
-- `ClaudeProviderConfig` - Provider configuration (API key auto-detected from env)
+**src/types.ts** (src/types.ts:1-135):
+- `ClaudeProviderConfig` - Provider configuration (API key auto-detected from env, Claude binary auto-detected)
 - `ClaudeModelSettings` - Model-specific settings (maxTokens, temperature, agent config)
 - `ClaudeModelId` - Supported Claude model identifiers
+
+**src/utils.ts** (src/utils.ts:34-56):
+- `detectClaudeBinaryPath()` - Automatically detects Claude Code executable using `Bun.which('claude')`
+- Caches detection result to avoid repeated lookups
+- Returns `null` if binary not found in PATH
 
 **src/errors.ts** (src/errors.ts:1-100):
 - Custom error classes that extend `ClaudeProviderError`
@@ -127,6 +132,37 @@ The Claude Agent SDK uses simplified model tier names that automatically map to 
 ## Environment Setup
 
 The Claude Agent SDK automatically picks up `ANTHROPIC_API_KEY` from environment variables. No manual API key configuration needed.
+
+### Claude Binary Detection
+
+The provider automatically detects the Claude Code executable in your system PATH:
+
+- **Automatic Detection**: Uses `Bun.which('claude')` to find the binary automatically
+- **Caching**: Detection result is cached to avoid repeated lookups
+- **Manual Override**: You can specify a custom path via `pathToClaudeCodeExecutable` in `ClaudeProviderConfig`
+
+**Usage Examples:**
+
+```typescript
+import { claude } from 'claude-agent-ai-provider';
+
+// Automatic detection (default behavior)
+const model = claude('sonnet');
+
+// Manual path specification
+const model = claude('sonnet', {
+  pathToClaudeCodeExecutable: '/opt/homebrew/bin/claude'
+});
+
+// Using provider instance
+import { createClaudeProvider } from 'claude-agent-ai-provider';
+
+const provider = createClaudeProvider({
+  pathToClaudeCodeExecutable: '/custom/path/to/claude'
+});
+```
+
+The automatic detection runs when `pathToClaudeCodeExecutable` is not explicitly provided in the config. This works cross-platform (macOS, Linux, Windows).
 
 ## Examples Organization
 
@@ -188,28 +224,99 @@ All examples include detailed comments and console output showing usage, finish 
 - We must use prompt engineering to force JSON-only responses
 - Post-processing ensures clean JSON even when Claude adds markdown despite instructions
 
+### Automatic Claude Binary Detection (Added in v0.2.0)
+
+**Implementation** (src/language-model.ts:84-92, src/utils.ts:34-56):
+- When `pathToClaudeCodeExecutable` is not provided in `ClaudeProviderConfig`, the provider automatically detects the Claude binary using `Bun.which('claude')`
+- Detection result is cached in a module-level variable to avoid repeated lookups
+- If detection fails or binary not found, the option is simply not set (Agent SDK will use its default behavior)
+
+**Configuration Options** (src/types.ts:33-38):
+- `pathToClaudeCodeExecutable?: string` - Optional path to Claude Code executable
+- If provided, this path is used directly
+- If not provided, automatic detection is attempted
+- Example: `'/opt/homebrew/bin/claude'` (Homebrew on Apple Silicon)
+
+**Benefits**:
+- Zero-configuration setup for most users
+- Works with standard Claude Code installations (Homebrew, npm global, etc.)
+- Allows manual override for custom installations or non-standard paths
+- Efficient caching prevents performance impact from repeated detection
+
 ## Publishing
 
-```bash
-# Version bump (auto-commits)
-npm version patch  # 0.1.0 -> 0.1.1
-npm version minor  # 0.1.0 -> 0.2.0
-npm version major  # 0.1.0 -> 1.0.0
+### Release Workflow
 
-# Publish to npm (runs prepublishOnly script automatically)
+The complete workflow for releasing a new version to npm:
+
+```bash
+# 1. Ensure you're logged into npm
+npm whoami
+
+# 2. Verify package contents (optional)
+npm pack --dry-run
+
+# 3. Bump version (auto-creates commit and tag)
+npm version patch  # 0.1.0 -> 0.1.1 (bug fixes)
+npm version minor  # 0.1.0 -> 0.2.0 (new features)
+npm version major  # 0.1.0 -> 1.0.0 (breaking changes)
+
+# 4. Publish to npm (runs prepublishOnly script automatically)
 npm publish
 
-# Push to GitHub
+# 5. Push version commit and tag to GitHub
 git push && git push --tags
 
-# Create GitHub release
-gh release create v0.1.1 --title "v0.1.1 - Title" --notes "Release notes..."
+# 6. Create GitHub release with release notes
+gh release create v0.2.0 \
+  --title "v0.2.0 - Feature Name" \
+  --notes "## Features
+- Feature description
+- Another feature
+
+## Changes
+- Change description
+- Another change
+
+## Usage
+\`\`\`typescript
+// Example usage
+\`\`\`"
 ```
 
-The `prepublishOnly` script automatically runs:
+### Pre-Publish Checks
+
+The `prepublishOnly` script automatically runs before publishing:
 1. `bun run typecheck:src` - Type check source files
 2. `bun run build` - Build JavaScript + TypeScript declarations
 3. `bun test` - Run all tests
+
+All checks must pass before the package is published.
+
+### Version Bumping
+
+- **Patch** (`npm version patch`): Bug fixes, small improvements (0.1.0 → 0.1.1)
+- **Minor** (`npm version minor`): New features, backward compatible (0.1.0 → 0.2.0)
+- **Major** (`npm version major`): Breaking changes (0.1.0 → 1.0.0)
+
+The `npm version` command automatically:
+- Updates `package.json` version
+- Creates a git commit with message "chore: bump version to X.Y.Z"
+- Creates a git tag `vX.Y.Z`
+
+### Post-Publish Verification
+
+After publishing, verify the release:
+
+```bash
+# Check published version
+npm view claude-agent-ai-provider version
+
+# Test installation in a clean directory
+mkdir test-install && cd test-install
+npm init -y
+npm install claude-agent-ai-provider
+```
 
 ## Authentication
 
