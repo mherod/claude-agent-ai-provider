@@ -40,6 +40,7 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
 
   private config: ClaudeProviderConfig;
   private settings: ClaudeModelSettings;
+  private stderrBuffer: string[] = [];
 
   constructor(
     modelId: ClaudeModelId,
@@ -72,6 +73,9 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
   private buildAgentSDKOptions(options: LanguageModelV2CallOptions): AgentSDKOptions {
     let systemPrompt = extractSystemPrompt(options.prompt);
 
+    // Clear stderr buffer for new request
+    this.stderrBuffer = [];
+
     // Start with minimal config - let Agent SDK use its defaults
     const agentOptions: AgentSDKOptions = {
       model: this.modelId,
@@ -79,6 +83,11 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
       // - Picks up ANTHROPIC_API_KEY from environment
       // - Uses default cwd (process.cwd())
       // - Loads settings from ~/.claude/settings.json by default
+
+      // Capture stderr for better error messages
+      stderr: (message: string) => {
+        this.stderrBuffer.push(message);
+      },
     };
 
     // Set pathToClaudeCodeExecutable: use provided config, or auto-detect if not set
@@ -198,7 +207,7 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
           : undefined,
       };
     } catch (error) {
-      throw convertToAISDKError(error);
+      throw convertToAISDKError(error, this.stderrBuffer);
     }
   }
 
@@ -233,7 +242,7 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
         stream,
       };
     } catch (error) {
-      throw convertToAISDKError(error);
+      throw convertToAISDKError(error, this.stderrBuffer);
     }
   }
 
@@ -297,7 +306,7 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
 
           controller.close();
         } catch (error) {
-          controller.error(convertToAISDKError(error));
+          controller.error(convertToAISDKError(error, self.stderrBuffer));
         }
       },
     });
