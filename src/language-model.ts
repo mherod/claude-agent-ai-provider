@@ -27,6 +27,7 @@ import {
   collectAssistantMessages,
   stripMarkdownCodeBlocks,
 } from './converters';
+import { detectClaudeBinaryPath } from './utils';
 
 /**
  * Claude Agent Language Model implementation
@@ -79,6 +80,17 @@ export class ClaudeLanguageModel implements LanguageModelV2 {
       // - Uses default cwd (process.cwd())
       // - Loads settings from ~/.claude/settings.json by default
     };
+
+    // Set pathToClaudeCodeExecutable: use provided config, or auto-detect if not set
+    if (this.config.pathToClaudeCodeExecutable) {
+      agentOptions.pathToClaudeCodeExecutable = this.config.pathToClaudeCodeExecutable;
+    } else {
+      // Auto-detect Claude binary using `which claude`
+      const detectedPath = detectClaudeBinaryPath();
+      if (detectedPath) {
+        agentOptions.pathToClaudeCodeExecutable = detectedPath;
+      }
+    }
 
     // Handle structured output (generateObject) by forcing JSON-only mode
     if (options.responseFormat?.type === 'json') {

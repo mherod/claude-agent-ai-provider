@@ -29,6 +29,13 @@ export interface ClaudeProviderConfig {
    * Agent SDK has its own retry logic
    */
   maxRetries?: number;
+
+  /**
+   * Path to the Claude Code executable (optional)
+   * Used when the Claude Code executable is not in the default location
+   * Example: '/opt/homebrew/bin/claude' (Homebrew on Apple Silicon)
+   */
+  pathToClaudeCodeExecutable?: string;
 }
 
 /**
