@@ -48,6 +48,7 @@ claude setup-token
 ```
 
 This is perfect for:
+
 - Development and testing without API costs
 - Using the AI SDK with your existing Claude Code subscription
 - Quick prototyping and experimentation
@@ -253,11 +254,63 @@ const result = await generateText({
 });
 ```
 
+### Custom Provider with Model Aliases
+
+You can use `customProvider` to create custom model configurations and aliases:
+
+```typescript
+import { generateText, customProvider, wrapLanguageModel, defaultSettingsMiddleware } from 'ai';
+import { createClaudeProvider, claude } from 'claude-agent-ai-provider';
+
+// Create a custom provider with model aliases and settings
+const myClaude = customProvider({
+  languageModels: {
+    // Custom alias with specific settings
+    'claude-fast': wrapLanguageModel({
+      model: claude('haiku'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          maxTokens: 2048,
+          temperature: 0.3,
+        },
+      }),
+    }),
+    // Alias for sonnet with high temperature
+    'claude-creative': wrapLanguageModel({
+      model: claude('sonnet'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          temperature: 0.9,
+          maxTokens: 4096,
+        },
+      }),
+    }),
+    // Direct model reference
+    'claude-sonnet': claude('sonnet'),
+    'claude-opus': claude('opus'),
+  },
+  // Optional fallback to default provider
+  fallbackProvider: createClaudeProvider(),
+});
+
+// Use the custom provider
+const result = await generateText({
+  model: myClaude.languageModel('claude-fast'),
+  prompt: 'Quick response needed',
+});
+
+// Or use the creative alias
+const creativeResult = await generateText({
+  model: myClaude.languageModel('claude-creative'),
+  prompt: 'Write a creative story',
+});
+```
+
 ## Architecture
 
 This provider acts as a bridge between two SDKs:
 
-```
+```text
 AI SDK (AI Apps) → Claude Agent AI Provider → Claude Agent SDK → Claude API
 ```
 
@@ -284,6 +337,7 @@ The Claude Agent SDK uses simplified model tier names that automatically map to 
 Creates a language model instance directly.
 
 **Parameters:**
+
 - `modelId`: Claude model identifier
 - `config?`: Provider configuration (API key, base URL, etc.)
 - `settings?`: Model-specific settings (max tokens, temperature, etc.)
@@ -295,23 +349,47 @@ Creates a language model instance directly.
 Creates a provider instance for creating multiple models.
 
 **Parameters:**
+
 - `config?`: Provider configuration
 
 **Returns:** `ClaudeProvider`
 
+### Using with `customProvider()`
+
+You can combine the Claude provider with `customProvider()` to create model aliases and custom configurations:
+
+```typescript
+import { customProvider, wrapLanguageModel, defaultSettingsMiddleware } from 'ai';
+import { createClaudeProvider, claude } from 'claude-agent-ai-provider';
+
+const myProvider = customProvider({
+  languageModels: {
+    'fast-claude': wrapLanguageModel({
+      model: claude('haiku'),
+      middleware: defaultSettingsMiddleware({
+        settings: { temperature: 0.3 },
+      }),
+    }),
+  },
+  fallbackProvider: createClaudeProvider(),
+});
+```
+
 ## More Examples
 
-See [`examples/`](./examples) directory for 18+ comprehensive examples including:
+See [`examples/`](./examples) directory for comprehensive examples including:
 
 - Text generation with tools and multi-step workflows
 - Structured data extraction and validation
 - Streaming with callbacks and event monitoring
 - Advanced tool calling with lifecycle hooks
+- Custom provider configurations and model aliases
 
 ```bash
 bun examples/e2e-generate-text-basic.ts
 bun examples/e2e-generate-object-extraction.ts
 bun examples/e2e-stream-text-real-world.ts
+bun examples/e2e-custom-provider.ts
 ```
 
 ## Development
@@ -342,5 +420,6 @@ MIT
 ## Credits
 
 Built on top of:
+
 - [AI SDK](https://sdk.vercel.ai/) by Vercel
 - [Claude Agent SDK](https://docs.claude.com/en/docs/agent-sdk/typescript) by Anthropic
